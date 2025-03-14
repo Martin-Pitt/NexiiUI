@@ -48,21 +48,20 @@ renderCombatantTag(string agent, string group)
         PRIM_COLOR, FACE_PROFILE, <1,1,1>*.15, 1,
         PRIM_COLOR, FACE_GROUP, <1,1,1>, 1,
         
-        /* // Show health bar by default
         PRIM_TEXTURE, FACE_TRIM, TEXTURE_TRIM, <1,1,0>, <0,0,0>, 0,
-        PRIM_COLOR, FACE_TRIM, <1,1,1>, 0,
-        PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <0,0,0>, 0,
-        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
-        PRIM_TEXTURE, FACE_BAR_DELTA, TEXTURE_BAR, <1,1,0>, <0,0,0>, 0,
-        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1
-        /*/ // Hide health bar by default
-        PRIM_TEXTURE, FACE_TRIM, TEXTURE_TRIM, <1,1,0>, <0,0,0>, 0,
-        PRIM_COLOR, FACE_TRIM, <1,1,1>, 1,
         PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <-0.5,0,0>, 0,
-        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
         PRIM_TEXTURE, FACE_BAR_DELTA, TEXTURE_BAR, <1,1,0>, <-0.5,0,0>, 0,
+        #ifdef COMBATANT_HEALTH_BY_DEFAULT
+        // Show health bar by default
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 1,
+        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
         PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1
-        //*/
+        #else
+        // Hide health bar by default
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 0,
+        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 0,
+        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 0
+        #endif
     ];
     llSetLinkTextureAnim(linkCombatantTag,
         ANIM_ON | LOOP | SMOOTH,
@@ -122,25 +121,33 @@ releaseCombatantTag(string agent)
 
 list updateCombatantTag(string agent)
 {
-    list details = llGetObjectDetails(agent, [OBJECT_HEALTH]);
-    if(details); else return [];
-    
     string identifier = "COMBATANT_" + agent;
     list label = llJson2List(llLinksetDataRead(identifier));
     integer linkCombatantTag = llList2Integer(label, 0);
     
+    list details = llGetObjectDetails(agent, [OBJECT_HEALTH]);
+    if(details); else return [
+        PRIM_LINK_TARGET, linkCombatantTag,
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 0,
+        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 0,
+        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 0
+    ];
+    
     float health = llList2Float(details, 0) / 100.0;
+    
+    float healthPrev;
+    if(llLinksetDataRead(identifier + "_health"))
+         healthPrev = (float)llLinksetDataRead(identifier + "_health");
+    else healthPrev = health;
+    llLinksetDataWrite(identifier + "_health", (string)health);
     
     return [
         PRIM_LINK_TARGET, linkCombatantTag,
-        
-        PRIM_COLOR, FACE_TRIM, <1,1,1>, 0,
-        PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <health * -.5,0,0>, 0,
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 1,
         PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
-        
-        // TODO: Show deltas over time
-        PRIM_TEXTURE, FACE_BAR_DELTA, TEXTURE_BAR, <1,1,0>, <health * -.5,0,0>, 0,
-        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1
+        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1,
+        PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <health * -.5,0,0>, 0,
+        PRIM_TEXTURE, FACE_BAR_DELTA, TEXTURE_BAR, <1,1,0>, <healthPrev * -.5,0,0>, 0
     ];
 }
 

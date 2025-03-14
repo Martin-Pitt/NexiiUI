@@ -57,26 +57,26 @@ renderVehicleTag(string vehicle)
         PRIM_SIZE, <0.1, 3.531, 0.216>,
         PRIM_TEXTURE, FACE_PROFILE, TEXTURE_TRANSPARENT, <1,.0838,0>, <0,0.125,0>, 0,
         PRIM_COLOR, FACE_PROFILE, <1,1,1>*.15, 1,
+        PRIM_COLOR, FACE_ICON, <1,1,1>, 1,
         
-        /* // Show health bar by default
         PRIM_TEXTURE, FACE_TRIM, TEXTURE_TRIM, <1,1,0>, <0,0,0>, 0,
-        PRIM_COLOR, FACE_TRIM, <1,1,1>, 0,
-        PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <0,0,0>, 0,
-        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
-        PRIM_TEXTURE, FACE_BAR_DELTA, TEXTURE_BAR, <1,1,0>, <0,0,0>, 0,
-        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1,
-        PRIM_COLOR, FACE_DIGITS_HEALTH, <1,1,1>, 1,
-        PRIM_COLOR, FACE_DIGITS_MAX, <1,1,1>, 1
-        /*/ // Hide health bar by default
-        PRIM_TEXTURE, FACE_TRIM, TEXTURE_TRIM, <1,1,0>, <0,0,0>, 0,
-        PRIM_COLOR, FACE_TRIM, <1,1,1>, 1,
         PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <-0.5,0,0>, 0,
-        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
         PRIM_TEXTURE, FACE_BAR_DELTA, TEXTURE_BAR, <1,1,0>, <-0.5,0,0>, 0,
+        #ifdef VEHICLE_HEALTH_BY_DEFAULT
+        // Show health bar by default
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 1,
+        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
         PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1,
         PRIM_COLOR, FACE_DIGITS_HEALTH, <1,1,1>, 1,
         PRIM_COLOR, FACE_DIGITS_MAX, <1,1,1>, 1
-        //*/
+        #else
+        // Hide health bar by default
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 0,
+        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 0,
+        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 0,
+        PRIM_COLOR, FACE_DIGITS_HEALTH, <1,1,1>, 0,
+        PRIM_COLOR, FACE_DIGITS_MAX, <1,1,1>, 0
+        #endif
         
         #ifdef VEHICLE_PATCH
         ,
@@ -174,14 +174,19 @@ list updateVehicleTag(string vehicle)
     @skipHealthValues;
     
     float healthPrev;
-    if(llLinksetDataRead(identifier + "_Health"))
-         healthPrev = (float)llLinksetDataRead(identifier + "_Health");
+    if(llLinksetDataRead(identifier + "_health"))
+         healthPrev = (float)llLinksetDataRead(identifier + "_health");
     else healthPrev = health;
-    llLinksetDataWrite(identifier + "_Health", (string)health);
+    llLinksetDataWrite(identifier + "_health", (string)health);
     
     // Show as ded -- possible to misidentify vehicles that have no prim health and no LBA
     if(health <= 0) return [
         PRIM_LINK_TARGET, linkVehicleTag,
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 1,
+        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
+        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1,
+        PRIM_COLOR, FACE_DIGITS_HEALTH, <1,1,1>, 0,
+        PRIM_COLOR, FACE_DIGITS_MAX, <1,1,1>, 0,
         PRIM_TEXTURE, FACE_TRIM, TEXTURE_TRANSPARENT, <1,1,0>, <0,0,0>, 0,
         PRIM_TEXTURE, FACE_ICON] + DamageTypeAsIcon(-100) + [
         PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_TRANSPARENT, <1,1,0>, <(health > 0) * -.5,0,0>, 0,
@@ -193,6 +198,11 @@ list updateVehicleTag(string vehicle)
     // Prim health but no visible or hidden hovertext indicating the hp/max
     else if(!hpMax) return [
         PRIM_LINK_TARGET, linkVehicleTag,
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 1,
+        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
+        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1,
+        PRIM_COLOR, FACE_DIGITS_HEALTH, <1,1,1>, 0,
+        PRIM_COLOR, FACE_DIGITS_MAX, <1,1,1>, 1,
         PRIM_TEXTURE, FACE_TRIM, TEXTURE_TRANSPARENT, <1,1,0>, <0,0,0>, 0,
         PRIM_TEXTURE, FACE_ICON, TEXTURE_TRANSPARENT, <1,1,0>, <0,0,0>, 0,
         PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <(health > 0) * -.5,0,0>, 0,
@@ -204,6 +214,11 @@ list updateVehicleTag(string vehicle)
     // Full health progress bar and number displays possible
     return [
         PRIM_LINK_TARGET, linkVehicleTag,
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 1,
+        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
+        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1,
+        PRIM_COLOR, FACE_DIGITS_HEALTH, <1,1,1>, 1,
+        PRIM_COLOR, FACE_DIGITS_MAX, <1,1,1>, 1,
         PRIM_TEXTURE, FACE_TRIM, TEXTURE_TRIMDIV, <1,1,0>, <0,0,0>, 0,
         PRIM_TEXTURE, FACE_ICON, TEXTURE_TRANSPARENT, <1,1,0>, <0,0,0>, 0,
         PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <health * -.5,0,0>, 0,
