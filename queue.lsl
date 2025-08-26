@@ -42,12 +42,14 @@ float lastHTTPRequest = -10.0;
 renderGroup(integer link, integer face, key texture)
 {
     list params = llGetLinkPrimitiveParams(link, [PRIM_TEXTURE, face]);
+    if(params); else params = ["", <1,1,0>, <0,0,0>, 0.0];
     llSetLinkPrimitiveParamsFast(link, [PRIM_TEXTURE, face, texture] + llDeleteSubList(params, 0, 0));
 }
 
 renderProfile(integer link, integer face, key texture)
 {
     list params = llGetLinkPrimitiveParams(link, [PRIM_TEXTURE, face]);
+    if(params); else params = ["", <1,1,0>, <0,0,0>, 0.0];
     llSetLinkPrimitiveParamsFast(link, [PRIM_TEXTURE, face, texture] + llDeleteSubList(params, 0, 0));
 }
 
@@ -100,6 +102,8 @@ default
             llSetTimerEvent(TIMEOUT);
         }
         
+        /*
+        TODO: Actually check link number as well maybe? Otherwise could deqeue on someone with same group
         else if(number == LINK_DEQUEUE_GROUP)
         {
             string group = llList2String(llJson2List(text), 0);
@@ -131,6 +135,7 @@ default
                 }
             }
         }
+        */
     }
     
     timer()

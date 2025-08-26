@@ -45,6 +45,7 @@ renderCombatantTag(string agent, string group)
     list params = [
         PRIM_SIZE, <0.1, 3.531, 0.216>,
         PRIM_TEXTURE, FACE_PROFILE, TEXTURE_TRANSPARENT, <1,.0838,0>, <0,0.125,0>, 0,
+        PRIM_TEXTURE, FACE_GROUP, TEXTURE_TRANSPARENT, <1,1,0>, <0,0,0>, 0,
         PRIM_COLOR, FACE_PROFILE, <1,1,1>*.15, 1,
         PRIM_COLOR, FACE_GROUP, <1,1,1>, 1,
         
@@ -73,6 +74,7 @@ renderCombatantTag(string agent, string group)
     
     
     llLinksetDataWrite(identifier, llList2Json(JSON_ARRAY, label));
+    llLinksetDataWrite(identifier + "_group", group);
     
     // Queue up loading the profile and group pictures if not cached already
     llMessageLinked(LINK_THIS, LINK_QUEUE_PROFILE, llList2Json(JSON_ARRAY, [agent, linkCombatantTag, FACE_PROFILE]), "");
@@ -89,7 +91,7 @@ releaseCombatantTag(string agent)
 {
     string identifier = "COMBATANT_" + agent;
     list label = llJson2List(llLinksetDataRead(identifier));
-    llLinksetDataDelete(identifier);
+    llLinksetDataDeleteFound("^" + identifier, "");
     
     integer linkCombatantTag = llList2Integer(label, 0);
     list params = [
@@ -141,13 +143,45 @@ list updateCombatantTag(string agent)
     else healthPrev = health;
     llLinksetDataWrite(identifier + "_health", (string)health);
     
-    return [
-        PRIM_LINK_TARGET, linkCombatantTag,
+    details = llGetObjectDetails(llList2Key(llGetAttachedList(agent), 0), [OBJECT_GROUP]);
+    string group = llList2String(details, 0);
+    string prevGroup = llLinksetDataRead(identifier + "_group");
+    if(group != prevGroup)
+    {
+        llLinksetDataWrite(identifier + "_group", group);
+        
+        if(group != "" && group != NULL_KEY)
+        {
+            llMessageLinked(LINK_THIS, LINK_QUEUE_GROUP, llList2Json(JSON_ARRAY, [group, linkCombatantTag, FACE_GROUP]), "");
+        }
+    }
+    
+    list params = [
+        PRIM_LINK_TARGET, linkCombatantTag
+    ];
+    
+    integer sinceDeath = llGetUnixTime() - (integer)llLinksetDataRead(identifier + "_death");
+    if(sinceDeath < 6) params += [
+        PRIM_COLOR, FACE_ICON, <1,1,1>, (6.0 - sinceDeath) / 6.0,
+        PRIM_TEXTURE, FACE_ICON] + DamageTypeAsIcon(-100);
+    else params += [
+        PRIM_TEXTURE, FACE_ICON, TEXTURE_TRANSPARENT, <1,1,0>, <0,0,0>, 0
+    ];
+    
+    if(sinceDeath < 3) params += [
+        PRIM_COLOR, FACE_TRIM, <1,1,1>, 0,
+        PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 0,
+        PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 0
+    ];
+    
+    else params += [
         PRIM_COLOR, FACE_TRIM, <1,1,1>, 1,
         PRIM_COLOR, FACE_BAR_HEALTH, <0,1,0>, 1,
         PRIM_COLOR, FACE_BAR_DELTA, <1,0,0>, 1,
         PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <health * -.5,0,0>, 0,
         PRIM_TEXTURE, FACE_BAR_DELTA, TEXTURE_BAR, <1,1,0>, <healthPrev * -.5,0,0>, 0
     ];
+    
+    return params;
 }
 

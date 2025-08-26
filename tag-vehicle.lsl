@@ -95,7 +95,7 @@ releaseVehicleTag(string vehicle)
 {
     string identifier = "VEHICLE_" + vehicle;
     list label = llJson2List(llLinksetDataRead(identifier));
-    llLinksetDataDelete(identifier);
+    llLinksetDataDeleteFound("^" + identifier, "");
     
     integer linkVehicleTag = llList2Integer(label, 0);
     #ifdef VEHICLE_PATCH
@@ -150,8 +150,30 @@ list updateVehicleTag(string vehicle)
     integer hp;
     integer hpMax;
     
-    // Try to get the standardised hover text health hp/max
-    string text = (string)llGetObjectDetails(vehicle, [OBJECT_TEXT]);
+    // Try to get the standardised health hp/max
+    list details = llGetObjectDetails(vehicle, [OBJECT_DESC, OBJECT_TEXT]);
+    
+    // First attempt via LBA format
+    string desc = llList2String(details, 0);
+    
+    // LBA.v.L.2.31,47,50
+    // LBA.v.2.31,140,250
+    if(llGetSubString(desc, 0, 5) == "LBA.v.")
+    {
+        list lba = llCSV2List(desc);
+        if(llGetListLength(lba) >= 3)
+        {
+            hp = llList2Integer(lba, 1);
+            hpMax = llList2Integer(lba, 2);
+            if(hpMax) health = (float)hp / (float)hpMax;
+            jump skipHealthValues;
+        }
+        
+        // else; Some vehicles have an LBA identifier but no health set?
+    }
+    
+    // Let's try grab from hover text
+    string text = llList2String(details, 1); // e.g. [LBA Light]\n[47/50]
     if(text == "") jump skipHealthValues;
     
     list temp = llParseString2List(text, [" "], ["/"]);
@@ -169,7 +191,7 @@ list updateVehicleTag(string vehicle)
     else if(intHP) hp = intHP; // Last resort, if it's a positive value then lets try use it anyway
     else { hp = hpMax = 0; jump skipHealthValues; }
     
-    health /= float(hpMax); // Scale health to [0.0-1.0] range
+    health = float(hp) / float(hpMax); // Scale health to [0.0-1.0] range
     
     @skipHealthValues;
     
@@ -224,6 +246,6 @@ list updateVehicleTag(string vehicle)
         PRIM_TEXTURE, FACE_BAR_HEALTH, TEXTURE_BAR, <1,1,0>, <health * -.5,0,0>, 0,
         PRIM_TEXTURE, FACE_BAR_DELTA, TEXTURE_BAR, <1,1,0>, <healthPrev * -.5,0,0>, 0,
         PRIM_TEXTURE, FACE_DIGITS_HEALTH, DIGIT(hp),
-        PRIM_TEXTURE, FACE_DIGITS_MAX, DIGIT(hpMax)
+        PRIM_TEXTURE, FACE_DIGITS_MAX, DIGIT_LEFT(hpMax)
     ];
 }
